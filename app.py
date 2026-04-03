@@ -137,16 +137,20 @@ if "💬" in page:
     for i, m in enumerate(st.session_state.messages):
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
-            if m["role"] == "assistant" and "sources" in m:
-                with st.expander("📄 แหล่งอ้างอิงเอกสารที่ใช้"):
-                    for d in m["sources"]:
-                        st.markdown(f'<div class="reference-card">{d.page_content}</div>', unsafe_allow_html=True)
+            if m["role"] == "assistant":
+                if "sources" in m and m["sources"]:
+                    with st.expander("📄 แหล่งอ้างอิงเอกสารที่ใช้"):
+                        for d in m["sources"]:
+                            st.markdown(f'<div class="reference-card">{d.page_content}</div>', unsafe_allow_html=True)
                 
-                # Feedback options
-                c1, c2 = st.columns([1, 10])
+                # --- ปุ่ม Feedback (👍/👎) ---
+                c1, c2, c3 = st.columns([1, 1, 10])
                 if c1.button("👍", key=f"up_{i}"):
                     save_feedback(st.session_state.messages[i-1]["content"], m["content"], True)
-                    st.toast("บันทึกการตอบรับแล้ว!")
+                    st.toast("บันทึกการตอบรับเชิงบวกเรียบร้อย! ✨")
+                if c2.button("👎", key=f"down_{i}"):
+                    save_feedback(st.session_state.messages[i-1]["content"], m["content"], False)
+                    st.toast("บันทึกคำติชมเชิงลบแล้ว เราจะปรับปรุงให้เก่งขึ้นครับ! 🛠️")
 
     # Chat Input
     if prompt := st.chat_input("ตัวอย่าง: เบิกค่าที่พักได้คืนละเท่าไหร่..."):
@@ -155,7 +159,7 @@ if "💬" in page:
 
         with st.chat_message("assistant"):
             with st.spinner("AI กำลังค้นหาระเบียบที่เกี่ยวข้อง..."):
-                qa = get_qa_chain(openrouter_api_key)
+                qa = get_qa_chain(openrouter_api_key, mode="chat")
                 res = qa.invoke({"input": prompt})
                 ans, ctx = res["answer"], res.get("context", [])
                 st.markdown(ans)
@@ -186,7 +190,7 @@ elif "📸" in page:
                     st.error(f"ระบบ OCR ผิดพลาด: {ocr['error']}")
                 else:
                     st.session_state.ocr = ocr
-                    qa = get_qa_chain(openrouter_api_key)
+                    qa = get_qa_chain(openrouter_api_key, mode="audit")
                     with st.spinner("กำลังตรวจสอบกับระเบียบสถาบัน..."):
                         st.session_state.v_res = verify_receipt_rules(qa, ocr)
 
