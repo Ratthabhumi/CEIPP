@@ -73,14 +73,37 @@ def get_qa_chain(api_key):
 
     retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
     
-    # สามารถใช้ gemma-3-4b-it ได้ หรือถ้าอยากให้ฉลาดขึ้นมากแบบฟรี 15 ครั้ง/นาที 
-    # แนะนำให้เปลี่ยนตัวเลขเป็น "gemini-1.5-flash"
-    llm = ChatOpenAI(
-        model="google/gemma-3-4b-it:free",
-        base_url="https://openrouter.ai/api/v1",
-        api_key=api_key,
-        temperature=0,
-    )
+    # รายชื่อโมเดลฟรีที่เสถียรที่สุดในกรณีที่ตัวใดตัวหนึ่งคิวเต็ม (429 Rate Limit)
+    models_to_try = [
+        "google/gemma-3-4b-it:free",
+        "google/gemma-3-27b-it:free",
+        "google/gemma-2-9b-it:free",
+        "mistralai/mistral-7b-instruct:free"
+    ]
+    
+    llm = None
+    for model_name in models_to_try:
+        try:
+            llm = ChatOpenAI(
+                model=model_name,
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+                temperature=0,
+                max_retries=1 # ลองแค่ครั้งเดียวแล้วข้ามถ้าไม่ได้
+            )
+            # ทดสอบเบื้องต้น (ทำ Dummy call หรือปล่อยผ่านไปก่อน)
+            break
+        except:
+            continue
+
+    if not llm:
+        # ถ้าพังหมดจริงๆ ให้กลับไปที่ตัวแรกสุด
+        llm = ChatOpenAI(
+            model=models_to_try[0],
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+            temperature=0,
+        )
     
     # ปรับจูน Prompt ให้มีความเข้าใจโลกความจริงและไม่เถรตรงจนเกินไป
     combined_prompt = (
