@@ -1,0 +1,36 @@
+# ===== SECRETS (ห้ามขึ้น GitHub เด็ดขาด!) =====
+.streamlit/secrets.toml
+
+# ===== Virtual Environment =====
+venv/
+env/
+.env
+
+# ===== Python Cache =====
+__pycache__/
+*.pyc
+*.pyo
+
+# ===== Log & Temp Files =====
+error_log.txt
+models.txt
+pip_packages.txt
+
+# Docs/
+# MoreData/
+.claude/
+
+# ===== Databases & Generated Outputs =====
+chroma_db/
+chroma_db_v2/
+*.log
+!requirements.txt
+!golden_dataset.json
+!evaluation_report.json
+!retrieval_eval_report.json
+
+# Local Activity Logs & Metadata
+approved_logs.json
+feedback_log.json
+.omc/
+check_scores.py

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>KMITL AI Evaluation Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+
+:root {
+  --kmitl-orange: #f57c00;
+  --kmitl-navy:   #001a33;
+  --teal:   #0d9488;
+  --blue:   #2563eb;
+  --purple: #7c3aed;
+  --orange: #ea580c;
+  --green:  #16a34a;
+  --red:    #dc2626;
+  --bg:     #05090f;
+  --card:   rgba(30, 41, 59, 0.7);
+  --card2:  rgba(39, 53, 72, 0.8);
+  --text:   #f1f5f9;
+  --muted:  #94a3b8;
+  --border: rgba(51, 65, 85, 0.5);
+  --glow-orange: rgba(245, 124, 0, 0.3);
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:'Sarabun',sans-serif;
+  background: var(--bg);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(245, 124, 0, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 40%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 24px 60px;
+}
+
+/* ── HEADER ── */
+.header {
+  text-align:center;
+  margin-bottom: 36px;
+  position: relative;
+}
+.header::before {
+  content:'';
+  position:absolute;
+  top:-28px; left:50%;
+  transform:translateX(-50%);
+  width:320px; height:3px;
+  background: linear-gradient(90deg, transparent, var(--teal), var(--blue), var(--purple), transparent);
+  border-radius:99px;
+}
+.header h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #fff 30%, var(--kmitl-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+.header p { color: var(--muted); margin-top:6px; font-size:.95rem; }
+.badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background: linear-gradient(135deg,#1e3a5f,#312e81);
+  border:1px solid #3b4680;
+  color:#c7d2fe; border-radius:20px;
+  padding:5px 18px; font-size:.82rem; margin-top:10px;
+}
+.badge::before { content:''; width:7px; height:7px; border-radius:50%; background:#22d3ee; animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── SECTION LABELS ── */
+.section-label {
+  display:flex; align-items:center; gap:10px;
+  font-size:.78rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:1.5px; color: var(--muted);
+  margin: 32px 0 14px;
+}
+.section-label::after {
+  content:''; flex:1; height:1px; background: var(--border);
+}
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap:14px;
+  margin-bottom:0;
+}
+.kpi {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 24px -1px rgba(0,0,0,0.2);
+}
+.kpi:hover { 
+  transform: translateY(-5px) scale(1.02); 
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.2);
+}
+.kpi::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  border-radius: 20px 20px 0 0;
+  opacity: 0.8;
+}
+.kpi.total::before  { background: var(--kmitl-orange); box-shadow: 0 0 15px var(--glow-orange); }
+.kpi.faith::before  { background: var(--teal); box-shadow: 0 0 15px rgba(13, 148, 136, 0.4); }
+.kpi.relev::before  { background: var(--blue); box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); }
+.kpi.prec::before   { background: var(--purple); box-shadow: 0 0 15px rgba(124, 58, 237, 0.4); }
+.kpi.recall::before { background: var(--green); }
+.kpi.p10::before    { background: var(--orange); }
+.kpi.mrr::before    { background: #f59e0b; }
+.kpi.cos::before    { background: #ec4899; }
+
+.kpi-icon { font-size:1.5rem; margin-bottom:10px; }
+.kpi-val  { font-size:2rem; font-weight:800; line-height:1; }
+.kpi.total  .kpi-val { background:linear-gradient(135deg,#38bdf8,#818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.kpi.faith  .kpi-val { color:#2dd4bf; }
+.kpi.relev  .kpi-val { color:#60a5fa; }
+.kpi.prec   .kpi-val { color:#a78bfa; }
+.kpi.recall .kpi-val { color:#4ade80; }
+.kpi.p10    .kpi-val { color:#fb923c; }
+.kpi.mrr    .kpi-val { color:#fbbf24; }
+.kpi.cos    .kpi-val { color:#f472b6; }
+
+.kpi-label { font-size:.72rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+.kpi-sub   { font-size:.75rem; color:var(--muted); margin-top:6px; }
+
+/* ── CHARTS GRID ── */
+.charts-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+@media(max-width:760px){ .charts-grid{ grid-template-columns:1fr; } }
+
+.card {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.card.full { grid-column:1/-1; }
+.card-title {
+  font-size:.95rem; font-weight:700; color:var(--text);
+  margin-bottom:18px; display:flex; align-items:center; gap:8px;
+}
+.card-title .chip {
+  font-size:.7rem; background:var(--card2); color:var(--muted);
+  border-radius:6px; padding:2px 8px; font-weight:400;
+}
+
+/* ── PROGRESS BARS ── */
+.prog { margin-bottom:14px; }
+.prog-head { display:flex; justify-content:space-between; margin-bottom:5px; }
+.prog-name  { font-size:.82rem; font-weight:600; }
+.prog-pct   { font-size:.82rem; color:var(--muted); }
+.prog-track { background:#1e3a5f33; border-radius:99px; height:10px; overflow:hidden; }
+.prog-fill  { height:100%; border-radius:99px; transition:width 1.2s cubic-bezier(.4,0,.2,1); }
+
+/* ── TARGET TABLE ── */
+.target-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.target-table th {
+  text-align:left; color:var(--muted); font-size:.72rem; text-transform:uppercase;
+  letter-spacing:.8px; padding:0 10px 10px; border-bottom:1px solid var(--border);
+}
+.target-table td {
+  padding:10px; border-bottom:1px solid #1e293b;
+  vertical-align:middle;
+}
+.target-table tr:last-child td { border-bottom:none; }
+.target-table tr:hover td { background:rgba(255,255,255,.03); }
+.metric-name { font-weight:600; }
+.component-chip {
+  display:inline-block; font-size:.68rem; padding:2px 8px; border-radius:5px;
+  font-weight:600; margin-left:6px;
+}
+.chip-retrieval { background:#1e3a5f; color:#7dd3fc; }
+.chip-llm       { background:#312e81; color:#c4b5fd; }
+
+.achieved { font-weight:700; }
+.badge-met   { display:inline-flex; align-items:center; gap:4px; background:#14532d; color:#4ade80; padding:3px 10px; border-radius:99px; font-size:.75rem; font-weight:700; }
+.badge-near  { display:inline-flex; align-items:center; gap:4px; background:#431407; color:#fb923c; padding:3px 10px; border-radius:99px; font-size:.75rem; font-weight:700; }
+.badge-ok    { display:inline-flex; align-items:center; gap:4px; background:#1e3a5f; color:#60a5fa; padding:3px 10px; border-radius:99px; font-size:.75rem; font-weight:700; }
+
+/* ── SCORE DIST GRID ── */
+.dist-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+@media(max-width:640px){ .dist-grid{ grid-template-columns:1fr; } }
+.dist-col-title { font-weight:700; font-size:.85rem; margin-bottom:14px; }
+
+.bar-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+.bar-score { width:60px; font-size:.78rem; color:var(--muted); font-weight:600; flex-shrink:0; }
+.bar-track { flex:1; background:#1e3a5f33; border-radius:99px; height:18px; overflow:hidden; }
+.bar-fill  { height:100%; border-radius:99px; display:flex; align-items:center; justify-content:flex-end; padding-right:7px; font-size:.68rem; font-weight:700; color:#fff; min-width:4px; }
+.bar-num   { width:38px; text-align:right; font-size:.75rem; color:var(--muted); flex-shrink:0; }
+
+/* ── FOOTER ── */
+footer { text-align:center; color:var(--border); font-size:.75rem; margin-top:36px; }
+
+/* ── HERO SECTION ── */
+.hero-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+.quality-gauge {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(245, 124, 0, 0.2);
+}
+.gauge-container {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  margin: 0 auto 15px;
+}
+.gauge-center {
+  position: absolute;
+  top: 55%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.gauge-val {
+  font-size: 3.5rem;
+  font-weight: 800;
+  display: inline-block;
+  background: linear-gradient(135deg, #fff, var(--kmitl-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.unit { font-size: 1.5rem; color: var(--muted); font-weight: 600; margin-left: 2px; }
+.gauge-label { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>KMITL AI Evaluation Report</h1>
+  <p>RAG Chatbot for Procurement and Budget Disbursement — King Mongkut's Institute of Technology Ladkrabang</p>
+  <div class="badge">Live Evaluation &nbsp;|&nbsp; 323 Questions &nbsp;|&nbsp; 3 April 2026</div>
+</div>
+
+<!-- HERO QUALITY SCORE -->
+<div class="hero-section">
+  <div class="card quality-gauge">
+    <div class="card-title" style="justify-content:center">Overall AI Reliability <span class="chip">Composite Score</span></div>
+    <div class="gauge-container">
+      <canvas id="gaugeChart"></canvas>
+      <div class="gauge-center">
+        <span class="gauge-val counter" data-target="89.7">0</span><span class="unit">%</span>
+      </div>
+    </div>
+    <p class="gauge-label">Ensuring accurate answers referenced from official institute regulations.</p>
+  </div>
+</div>
+
+<!-- ════ SECTION 1: LLM-AS-A-JUDGE ════ -->
+<div class="section-label">🤖 LLM-as-a-Judge (RAGAS Framework)</div>
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi total">
+    <div class="kpi-label">Total Questions</div>
+    <div class="kpi-icon">📋</div>
+    <div class="kpi-val counter" data-target="323">0</div>
+    <div class="kpi-sub">Golden Dataset</div>
+  </div>
+  <div class="kpi faith">
+    <div class="kpi-label">Faithfulness</div>
+    <div class="kpi-icon">🎯</div>
+    <div class="kpi-val"><span class="counter" data-target="93.20">0</span>%</div>
+    <div class="kpi-sub">avg 4.66 / 5.00</div>
+  </div>
+  <div class="kpi relev">
+    <div class="kpi-label">Answer Relevance</div>
+    <div class="kpi-icon">💬</div>
+    <div class="kpi-val"><span class="counter" data-target="91.80">0</span>%</div>
+    <div class="kpi-sub">avg 4.59 / 5.00</div>
+  </div>
+  <div class="kpi prec">
+    <div class="kpi-label">Context Precision</div>
+    <div class="kpi-icon">🔍</div>
+    <div class="kpi-val"><span class="counter" data-target="84.20">0</span>%</div>
+    <div class="kpi-sub">avg 4.21 / 5.00</div>
+  </div>
+</div>
+
+<!-- ════ SECTION 2: RETRIEVAL METRICS ════ -->
+<div class="section-label">🗂️ Retrieval Pipeline Metrics (@ k=10)</div>
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi recall">
+    <div class="kpi-label">Recall@10</div>
+    <div class="kpi-icon">📈</div>
+    <div class="kpi-val"><span class="counter" data-target="96.90">0</span>%</div>
+    <div class="kpi-sub">Exceeds Target</div>
+  </div>
+  <div class="kpi p10">
+    <div class="kpi-label">Precision@10</div>
+    <div class="kpi-icon">✂️</div>
+    <div class="kpi-val"><span class="counter" data-target="61.95">0</span>%</div>
+    <div class="kpi-sub">acceptable</div>
+  </div>
+  <div class="kpi mrr">
+    <div class="kpi-label">Mean Reciprocal Rank</div>
+    <div class="kpi-icon">🏆</div>
+    <div class="kpi-val counter" data-target="0.8992">0</div>
+    <div class="kpi-sub">Target &gt; 0.70 — Met</div>
+  </div>
+  <div class="kpi cos">
+    <div class="kpi-label">Cosine Similarity</div>
+    <div class="kpi-icon">🧭</div>
+    <div class="kpi-val counter" data-target="0.6172">0</div>
+    <div class="kpi-sub">Target &gt; 0.70 — Near</div>
+  </div>
+</div>
+
+<!-- ════ CHARTS ROW 1 ════ -->
+<div class="section-label">📊 Visualization</div>
+<div class="charts-grid">
+
+  <!-- Radar -->
+  <div class="card">
+    <div class="card-title">LLM-as-a-Judge Overview <span class="chip">Radar</span></div>
+    <canvas id="radarChart"></canvas>
+    <div class="fig-caption"><strong>Figure 6.3.2.1</strong> LLM-as-a-Judge Average Scores Across Three Evaluation Dimensions</div>
+  </div>
+
+  <!-- Donut -->
+  <div class="card">
+    <div class="card-title">% Questions Scoring 5/5 <span class="chip">Donut</span></div>
+    <canvas id="donutChart"></canvas>
+    <div class="fig-caption"><strong>Figure 6.3.2.2</strong> Proportion of Questions Achieving Maximum Score (5/5) per Evaluation Dimension</div>
+  </div>
+
+  <!-- Retrieval Progress bars -->
+  <div class="card">
+    <div class="card-title">Retrieval Metrics <span class="chip">Progress</span></div>
+
+    <div class="prog">
+      <div class="prog-head"><span class="prog-name" style="color:#4ade80">Recall@10</span><span class="prog-pct">96.90%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:96.90%;background:linear-gradient(90deg,#16a34a,#4ade80)"></div></div>
+    </div>
+    <div class="prog">
+      <div class="prog-head"><span class="prog-name" style="color:#fb923c">Precision@10</span><span class="prog-pct">61.95%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:61.95%;background:linear-gradient(90deg,#c2410c,#fb923c)"></div></div>
+    </div>
+    <div class="prog">
+      <div class="prog-head"><span class="prog-name" style="color:#fbbf24">MRR <small style="color:var(--muted)">(×100)</small></span><span class="prog-pct">89.92%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:89.92%;background:linear-gradient(90deg,#b45309,#fbbf24)"></div></div>
+    </div>
+    <div class="prog">
+      <div class="prog-head"><span class="prog-name" style="color:#f472b6">Cosine Sim <small style="color:var(--muted)">(×100)</small></span><span class="prog-pct">61.72%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:61.72%;background:linear-gradient(90deg,#9d174d,#f472b6)"></div></div>
+    </div>
+    <div style="margin-top:20px">
+      <div class="card-title" style="margin-bottom:12px">LLM Avg Scores <span class="chip">% of 5.00</span></div>
+      <div class="prog">
+        <div class="prog-head"><span class="prog-name" style="color:#2dd4bf">Faithfulness</span><span class="prog-pct">93.20%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:93.20%;background:linear-gradient(90deg,#0d9488,#2dd4bf)"></div></div>
+      </div>
+      <div class="prog">
+        <div class="prog-head"><span class="prog-name" style="color:#60a5fa">Answer Relevance</span><span class="prog-pct">91.80%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:91.80%;background:linear-gradient(90deg,#1d4ed8,#60a5fa)"></div></div>
+      </div>
+      <div class="prog">
+        <div class="prog-head"><span class="prog-name" style="color:#a78bfa">Context Precision</span><span class="prog-pct">84.20%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:84.20%;background:linear-gradient(90deg,#5b21b6,#a78bfa)"></div></div>
+      </div>
+    </div>
+    <div class="fig-caption"><strong>Figure 6.2.2.1</strong> Retrieval Pipeline Performance Metrics at k=10 and LLM-as-a-Judge Percentage Scores</div>
+  </div>
+
+  <!-- Stacked bar -->
+  <div class="card">
+    <div class="card-title">Score Distribution <span class="chip">Stacked Bar</span></div>
+    <canvas id="stackedBar" style="max-height:310px"></canvas>
+    <div class="fig-caption"><strong>Figure 6.4.1</strong> Score Distribution Across All Three Evaluation Dimensions (n = 323)</div>
+  </div>
+
+  <!-- Score dist breakdown full width -->
+  <div class="card full">
+    <div class="card-title">Score-Level Breakdown (1–5) <span class="chip">Breakdown</span></div>
+    <div class="dist-grid">
+      <div>
+        <div class="dist-col-title" style="color:#2dd4bf">🎯 Faithfulness</div>
+        <div id="distFaith"></div>
+      </div>
+      <div>
+        <div class="dist-col-title" style="color:#60a5fa">💬 Answer Relevance</div>
+        <div id="distRelev"></div>
+      </div>
+      <div>
+        <div class="dist-col-title" style="color:#a78bfa">🔍 Context Precision</div>
+        <div id="distPrec"></div>
+      </div>
+    </div>
+    <div class="fig-caption" style="margin-top:20px"><strong>Figure 6.4.2</strong> Score-Level Breakdown by Evaluation Dimension Showing Count and Percentage of Questions at Each Rating Level</div>
+  </div>
+
+  <!-- Performance vs Targets full width -->
+  <div class="card full">
+    <div class="card-title">📌 Performance vs. Stated Targets (Chapter 1.5)</div>
+    <table class="target-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Component</th>
+          <th>Target</th>
+          <th>Achieved</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="metric-name">Mean Reciprocal Rank</span></td>
+          <td><span class="component-chip chip-retrieval">Retrieval</span></td>
+          <td>&gt; 0.70</td>
+          <td><span class="achieved" style="color:#fbbf24">0.8992</span></td>
+          <td><span class="badge-met">✅ Met</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Cosine Similarity</span></td>
+          <td><span class="component-chip chip-retrieval">Retrieval</span></td>
+          <td>&gt; 0.70</td>
+          <td><span class="achieved" style="color:#f472b6">0.6172</span></td>
+          <td><span class="badge-near">⚠️ Near</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Faithfulness</span></td>
+          <td><span class="component-chip chip-llm">LLM-as-a-Judge</span></td>
+          <td>&gt; 4.00 / 5.00</td>
+          <td><span class="achieved" style="color:#2dd4bf">4.66</span></td>
+          <td><span class="badge-met">✅ Met</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Answer Relevance</span></td>
+          <td><span class="component-chip chip-llm">LLM-as-a-Judge</span></td>
+          <td>&gt; 4.00 / 5.00</td>
+          <td><span class="achieved" style="color:#60a5fa">4.59</span></td>
+          <td><span class="badge-met">✅ Met</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Context Precision</span></td>
+          <td><span class="component-chip chip-llm">LLM-as-a-Judge</span></td>
+          <td>Not specified</td>
+          <td><span class="achieved" style="color:#a78bfa">4.21</span></td>
+          <td><span class="badge-ok">📊 Above 4.00</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Recall@10</span></td>
+          <td><span class="component-chip chip-retrieval">Retrieval</span></td>
+          <td>Not specified</td>
+          <td><span class="achieved" style="color:#4ade80">96.90%</span></td>
+          <td><span class="badge-met">✅ Exceeds</span></td>
+        </tr>
+        <tr>
+          <td><span class="metric-name">Precision@10</span></td>
+          <td><span class="component-chip chip-retrieval">Retrieval</span></td>
+          <td>Not specified</td>
+          <td><span class="achieved" style="color:#fb923c">61.95%</span></td>
+          <td><span class="badge-ok">📊 Acceptable</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end charts-grid -->
+
+<footer>KMITL AI Evaluation Dashboard &nbsp;·&nbsp; Chapter 6 Evaluation Results &nbsp;·&nbsp; Gemma 3 4B (LLM-as-a-Judge)</footer>
+
+<script>
+// ── UTILITIES ──────────────────────────────────────────────
+function animateValue(el, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const val = (progress * (end - start) + start);
+    el.innerHTML = end % 1 === 0 ? Math.floor(val) : val.toFixed(2);
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
+// ── INITIALIZE COUNTERS ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.counter').forEach(el => {
+        const target = parseFloat(el.getAttribute('data-target'));
+        animateValue(el, 0, target, 1500);
+    });
+});
+
+// ── GAUGE CHART ───────────────────────────────────────────
+new Chart(document.getElementById('gaugeChart'), {
+  type: 'doughnut',
+  data: {
+    datasets: [{
+      data: [89.7, 10.3],
+      backgroundColor: ['#f57c00', '#1e293b'],
+      borderWidth: 0,
+      circumference: 180,
+      rotation: 270,
+      cutout: '85%',
+      borderRadius: 20
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+  }
+});
+
+// ── DATA ──────────────────────────────────────────────────
+const N = 270; // scored entries for distribution %
+const distData = {
+  faith: { 1:5,  2:5,  3:25, 4:16, 5:219 },
+  relev: { 1:0,  2:11, 3:22, 4:39, 5:198 },
+  prec:  { 1:3,  2:17, 3:31, 4:97, 5:122 },
+};
+const pct = (n) => +(n/N*100).toFixed(2);
+
+// ── RADAR ─────────────────────────────────────────────────
+new Chart(document.getElementById('radarChart'), {
+  type:'radar',
+  data:{
+    labels:['Faithfulness','Answer\nRelevance','Context\nPrecision'],
+    datasets:[{
+      label:'Average Score',
+      data:[4.66,4.59,4.21],
+      backgroundColor:'rgba(245,124,0,.15)',
+      borderColor:'#f57c00',
+      borderWidth:2.5,
+      pointBackgroundColor:['#2dd4bf','#60a5fa','#a78bfa'],
+      pointRadius:7, pointHoverRadius:9,
+    },{
+      label:'Target (4.00)',
+      data:[4,4,4],
+      backgroundColor:'rgba(255,255,255,.03)',
+      borderColor:'rgba(255,255,255,.2)',
+      borderWidth:1.5,
+      borderDash:[4,4],
+      pointRadius:0,
+    }]
+  },
+  options:{
+    responsive:true,
+    scales:{
+      r:{
+        min:0, max:5, ticks:{stepSize:1, color:'#64748b', font:{size:11}, backdropColor:'transparent'},
+        pointLabels:{color:'#cbd5e1', font:{size:12,weight:'600'}},
+        grid:{color:'rgba(255,255,255,0.1)'}, angleLines:{color:'rgba(255,255,255,0.1)'},
+      }
+    },
+    plugins:{
+      legend:{ labels:{color:'#94a3b8', usePointStyle:true, font:{size:11}} }
+    }
+  }
+});
+
+// ── DONUT ─────────────────────────────────────────────────
+new Chart(document.getElementById('donutChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Faithfulness (67.80%)', 'Answer Relevance (61.30%)', 'Context Precision (37.77%)'],
+    datasets:[{
+      data:[67.80,61.30,37.77],
+      backgroundColor:['#0d9488','#2563eb','#7c3aed'],
+      borderColor: '#05090f',
+      borderWidth:3,
+      hoverOffset:10,
+    }]
+  },
+  options:{
+    responsive:true,
+    cutout:'62%',
+    plugins:{
+      legend:{
+        position:'bottom',
+        labels:{color:'#94a3b8', font:{size:12}, usePointStyle:true, padding:16}
+      },
+      tooltip:{
+        callbacks:{
+          label: ctx => ` ${ctx.label}: ${ctx.raw}% of questions scored 5/5`
+        }
+      }
+    }
+  }
+});
+
+// ── STACKED BAR ───────────────────────────────────────────
+const colors = ['#ef4444','#f97316','#eab308','#22c55e','#0d9488'];
+const scoreNames = ['Score 1','Score 2','Score 3','Score 4','Score 5'];
+new Chart(document.getElementById('stackedBar'), {
+  type:'bar',
+  data:{
+    labels:['Faithfulness','Answer Relevance','Context Precision'],
+    datasets:[1,2,3,4,5].map((s,i)=>({
+      label: scoreNames[i],
+      data:[pct(distData.faith[s]), pct(distData.relev[s]), pct(distData.prec[s])],
+      backgroundColor: colors[i],
+      borderRadius: s===5 ? {topLeft:6,topRight:6} : 0,
+    }))
+  },
+  options:{
+    responsive:true,
+    scales:{
+      x:{stacked:true, grid:{display:false}, ticks:{color:'#94a3b8'}},
+      y:{
+        stacked:true, max:100,
+        ticks:{callback:v=>v+'%', color:'#94a3b8'},
+        grid:{color:'#1e293b'}
+      }
+    },
+    plugins:{
+      legend:{labels:{color:'#94a3b8', usePointStyle:true, font:{size:11}}},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}%`}}
+    }
+  }
+});
+
+// ── SCORE BREAKDOWN BARS ──────────────────────────────────
+function renderDist(containerId, dataset, color) {
+  const el = document.getElementById(containerId);
+  const scoreColors = ['#ef4444','#f97316','#eab308','#22c55e', color];
+  [1,2,3,4,5].forEach((s,i) => {
+    const p = pct(dataset[s]);
+    el.innerHTML += `
+      <div class="bar-row">
+        <div class="bar-score">Score ${s}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${p}%;background:${scoreColors[i]}">
+            ${p>=8 ? p+'%' : ''}
+          </div>
+        </div>
+        <div class="bar-num">${dataset[s]}</div>
+      </div>`;
+  });
+}
+renderDist('distFaith', distData.faith, '#0d9488');
+renderDist('distRelev', distData.relev, '#2563eb');
+renderDist('distPrec',  distData.prec,  '#7c3aed');
+</script>
+</body>
+</html>
