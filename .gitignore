@@ -34,3 +34,7 @@ approved_logs.json
 feedback_log.json
 .omc/
 check_scores.py
+
+# Latency benchmark outputs (dev-only)
+latency_benchmark_results.json
+e2e_latency_results.json

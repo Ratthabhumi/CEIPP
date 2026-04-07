@@ -175,22 +175,18 @@ with st.sidebar:
         gemini_key_input = st.text_input("Google Gemini Key:", type="password", help="Used for OCR (Gemini 1.5 Flash)")
         st.caption("💡 Tip: Store keys in HF Settings > Secrets for auto-login")
 
-    # --- Robust API Key Retrieval ---
+    # --- API Key Retrieval ---
     def get_api_key(secret_name, user_input=""):
-        """Safely fetch key from Streamlit secrets or Environment Variables."""
         val = ""
         try:
-            # 1. Try Streamlit Secrets (File or Env)
             if secret_name in st.secrets:
                 val = st.secrets[secret_name]
         except Exception:
-            pass # Secrets file missing, common in Docker
+            pass
 
-        # 2. Try OS Environment Variables directly (Reliable in HF Docker)
         if not val:
             val = os.environ.get(secret_name, "")
-        
-        # 3. Fallback to Sidebar User Input
+
         return val.strip() if val else user_input.strip()
 
     openrouter_api_key = get_api_key("OPENROUTER_API_KEY", api_key_input)
